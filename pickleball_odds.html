@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pickleball Tournament Odds</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #222;
+    --accent: #c8f135;
+    --accent2: #35f1a0;
+    --accent3: #f1a035;
+    --text: #f0f0f0;
+    --muted: #666;
+    --danger: #f13535;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(200,241,53,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,241,53,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    margin-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 32px;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 12px;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 8vw, 96px);
+    line-height: 0.9;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 13px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  .format-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* Standings table */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Team cards - main standings */
+  .standings {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 48px;
+  }
+
+  .team-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 90px 90px 90px 110px 110px;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px 20px;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+    animation: slideIn 0.4s ease both;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .team-row:nth-child(1) { animation-delay: 0.05s; }
+  .team-row:nth-child(2) { animation-delay: 0.1s; }
+  .team-row:nth-child(3) { animation-delay: 0.15s; }
+  .team-row:nth-child(4) { animation-delay: 0.2s; }
+  .team-row:nth-child(5) { animation-delay: 0.25s; }
+  .team-row:nth-child(6) { animation-delay: 0.3s; }
+  .team-row:nth-child(7) { animation-delay: 0.35s; }
+
+  .team-row:hover {
+    border-color: var(--accent);
+    background: #141414;
+  }
+
+  .team-row.top1 {
+    border-color: var(--accent);
+    background: rgba(200,241,53,0.04);
+  }
+
+  .team-row.top1::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+  }
+
+  .team-row.top2 {
+    background: rgba(53,241,160,0.03);
+  }
+
+  .rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--muted);
+    line-height: 1;
+  }
+
+  .team-row.top1 .rank { color: var(--accent); }
+
+  .team-info { min-width: 0; }
+
+  .team-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .team-players {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .col-header {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .col-val {
+    text-align: center;
+  }
+
+  .dupr-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--accent2);
+  }
+
+  .winpct-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+  }
+
+  .expwins-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    color: var(--accent3);
+  }
+
+  /* Odds badges */
+  .odds-ml {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    text-align: center;
+    line-height: 1;
+  }
+
+  .odds-ml.fav { color: var(--danger); }
+  .odds-ml.dog { color: var(--accent2); }
+  .odds-ml.even { color: var(--text); }
+
+  .odds-frac {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 2px;
+  }
+
+  /* Header row */
+  .table-header {
+    display: grid;
+    grid-template-columns: 36px 1fr 90px 90px 90px 110px 110px;
+    gap: 12px;
+    padding: 0 20px 10px;
+  }
+
+  /* Matchup matrix */
+  .matchup-section {
+    margin-bottom: 48px;
+  }
+
+  .matrix-wrap {
+    overflow-x: auto;
+  }
+
+  table.matrix {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+  }
+
+  table.matrix th, table.matrix td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  table.matrix th {
+    background: var(--surface2);
+    font-size: 11px;
+    letter-spacing: 1px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  table.matrix th.team-th {
+    color: var(--text);
+    text-align: left;
+    padding-left: 14px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+
+  table.matrix td.self {
+    background: #1a1a1a;
+    color: var(--muted);
+  }
+
+  table.matrix td.win { color: var(--accent); }
+  table.matrix td.loss { color: var(--danger); }
+
+  /* Matchup list */
+  .matchup-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+  }
+
+  .matchup-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .matchup-top {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .matchup-teams {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .m-team {
+    flex: 1;
+  }
+
+  .m-team-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+
+  .m-team-players {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .vs-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    color: var(--muted);
+    padding: 0 4px;
+  }
+
+  .m-team.right { text-align: right; }
+
+  .matchup-bar {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .matchup-probs {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+  }
+
+  .prob-left { color: var(--accent); }
+  .prob-right { color: var(--muted); }
+
+  .matchup-odds-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .m-odds {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+  }
+
+  .m-odds.fav { color: var(--danger); }
+  .m-odds.dog { color: var(--accent2); }
+  .m-odds-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Legend */
+  .legend {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin-bottom: 48px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .legend-item { }
+  .legend-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .legend-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  @media (max-width: 700px) {
+    .team-row, .table-header {
+      grid-template-columns: 32px 1fr 70px 80px 80px;
+    }
+    .col-hide { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="badge">DUPR-Based Analytics</div>
+    <h1>PICKLE<span>BALL</span><br>TOURNAMENT</h1>
+    <div class="subtitle">ROUND ROBIN · GAME TO 15 · SIDE-OUT SCORING · DOUBLES</div>
+    <div class="format-pills">
+      <div class="pill">7 TEAMS</div>
+      <div class="pill">21 MATCHUPS</div>
+      <div class="pill">6 GAMES PER TEAM</div>
+      <div class="pill">DUPR LOGISTIC MODEL</div>
+    </div>
+  </header>
+
+  <div class="section-label">Tournament Standings & Odds</div>
+
+  <div class="table-header">
+    <div></div>
+    <div></div>
+    <div class="col-header">DUPR</div>
+    <div class="col-header">WIN%</div>
+    <div class="col-header col-hide">EXP W</div>
+    <div class="col-header">MONEYLINE</div>
+    <div class="col-header col-hide">FRACTIONAL</div>
+  </div>
+
+  <div class="standings" id="standings"></div>
+
+  <div class="section-label">Head-to-Head Win Probabilities</div>
+  <div class="matchup-section">
+    <div class="matrix-wrap">
+      <table class="matrix" id="matrix"></table>
+    </div>
+  </div>
+
+  <div class="section-label">All Matchup Cards</div>
+  <div class="matchup-list" id="matchups"></div>
+
+  <br><br>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-title">DUPR MODEL</div>
+      <div class="legend-desc">Team DUPR = average of both players. Win prob uses logistic function: 1/(1+10^((oppDUPR−myDUPR)×k)) with k=1.8 calibrated for pickleball scoring variance.</div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-title">TOURNAMENT ODDS</div>
+      <div class="legend-desc">Expected wins = sum of win probs vs each opponent. Tournament win odds reflect probability of finishing 1st in round robin standings.</div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-title">MONEYLINE FORMAT</div>
+      <div class="legend-desc">Negative = favorite (bet that to win $100). Positive = underdog (win that on $100 bet). Even = +/−100 pick'em.</div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-title">SCORING NOTE</div>
+      <div class="legend-desc">Side-out scoring to 15 increases variance vs rally scoring. Upsets are more likely. Odds reflect true probability without house edge (no vig).</div>
+    </div>
+  </div>
+
+  <footer>MODEL: DUPR LOGISTIC · NO VIG APPLIED · FOR ENTERTAINMENT PURPOSES</footer>
+</div>
+
+<script>
+const teams = [
+  { name: "Tommy / Stepa",  short: "Tommy & Stepa",  p1: "Tommy",   r1: 5.25, p2: "Stepa",   r2: 4.16, tag: "T1" },
+  { name: "Bruce / Lucci",  short: "Bruce & Lucci",  p1: "Bruce",   r1: 5.00, p2: "Lucci",   r2: 4.63, tag: "T2" },
+  { name: "Brad / Tim",     short: "Brad & Tim",     p1: "Brad",    r1: 4.95, p2: "Tim",     r2: 4.52, tag: "T3" },
+  { name: "Jeremy / Mick",  short: "Jeremy & Mick",  p1: "Jeremy",  r1: 4.85, p2: "Mick",    r2: 4.81, tag: "T4" },
+  { name: "John / Sam",     short: "John & Sam",     p1: "John",    r1: 4.71, p2: "Sam",     r2: 4.49, tag: "T5" },
+  { name: "Mark / Marty",   short: "Mark & Marty",   p1: "Mark",    r1: 4.52, p2: "Marty",   r2: 4.06, tag: "T6" },
+  { name: "Steve / Dave",   short: "Steve & Dave",   p1: "Steve",   r1: 4.42, p2: "Dave",    r2: 3.93, tag: "T7" },
+];
+
+// Team DUPR = average
+teams.forEach(t => {
+  t.dupr = (t.r1 + t.r2) / 2;
+  t.players = `${t.p1} ${t.r1.toFixed(2)} / ${t.p2} ${t.r2.toFixed(2)}`;
+});
+
+// Logistic win probability
+// k=1.8 calibrated: at 0.5 DUPR gap → ~73% win prob (reasonable for pickleball)
+// Side-out scoring to 15 has higher variance than rally, so we moderate slightly
+const K = 1.8;
+
+function winProb(duprA, duprB) {
+  return 1 / (1 + Math.pow(10, (duprB - duprA) * K));
+}
+
+// Build win probability matrix
+const n = teams.length;
+const wpMatrix = Array.from({length:n}, (_,i) =>
+  Array.from({length:n}, (_,j) => i===j ? null : winProb(teams[i].dupr, teams[j].dupr))
+);
+
+// Expected wins
+teams.forEach((t,i) => {
+  t.expWins = wpMatrix[i].reduce((s,v) => v !== null ? s+v : s, 0);
+});
+
+// Tournament win probability via Monte Carlo (50k simulations)
+const SIM = 50000;
+const tourWins = new Array(n).fill(0);
+
+for (let s = 0; s < SIM; s++) {
+  const wins = new Array(n).fill(0);
+  for (let i = 0; i < n; i++) {
+    for (let j = i+1; j < n; j++) {
+      const p = wpMatrix[i][j];
+      if (Math.random() < p) wins[i]++; else wins[j]++;
+    }
+  }
+  // Find max wins
+  const maxW = Math.max(...wins);
+  const winners = wins.reduce((arr,w,idx) => w===maxW ? [...arr,idx] : arr, []);
+  // Split ties
+  winners.forEach(idx => tourWins[idx] += 1/winners.length);
+}
+
+teams.forEach((t,i) => {
+  t.tourProb = tourWins[i] / SIM;
+});
+
+// Convert to moneyline
+function toMoneyline(prob) {
+  if (prob <= 0) return '+99999';
+  if (prob >= 1) return '-99999';
+  if (prob > 0.5) {
+    return '-' + Math.round((prob / (1 - prob)) * 100);
+  } else if (prob < 0.5) {
+    return '+' + Math.round(((1 - prob) / prob) * 100);
+  } else {
+    return 'EVEN';
+  }
+}
+
+function toFractional(prob) {
+  if (prob <= 0) return '∞';
+  if (prob >= 1) return '1/100';
+  const odds = (1 - prob) / prob;
+  // Simplify to nice fraction
+  const decimals = [0.1,0.125,0.2,0.25,0.333,0.5,0.667,0.75,1,1.25,1.5,2,2.5,3,4,5,6,7,8,9,10,12,15,20,25,33,50,66,100];
+  let closest = decimals.reduce((a,b) => Math.abs(b-odds)<Math.abs(a-odds)?b:a);
+  const fracs = {0.1:'1/10',0.125:'1/8',0.2:'1/5',0.25:'1/4',0.333:'1/3',0.5:'1/2',0.667:'2/3',0.75:'3/4',1:'1/1',1.25:'5/4',1.5:'3/2',2:'2/1',2.5:'5/2',3:'3/1',4:'4/1',5:'5/1',6:'6/1',7:'7/1',8:'8/1',9:'9/1',10:'10/1',12:'12/1',15:'15/1',20:'20/1',25:'25/1',33:'33/1',50:'50/1',66:'66/1',100:'100/1'};
+  return fracs[closest] || closest.toFixed(1)+'/1';
+}
+
+// Sort by tourProb descending
+const sorted = [...teams].map((t,i) => ({...t, origIdx:i})).sort((a,b) => b.tourProb - a.tourProb);
+
+// Render standings
+const standingsEl = document.getElementById('standings');
+sorted.forEach((t, rank) => {
+  const ml = toMoneyline(t.tourProb);
+  const fr = toFractional(t.tourProb);
+  const mlClass = ml.startsWith('-') ? 'fav' : (ml === 'EVEN' ? 'even' : 'dog');
+
+  const row = document.createElement('div');
+  row.className = `team-row ${rank===0?'top1':rank===1?'top2':''}`;
+  row.style.animationDelay = (rank * 0.07 + 0.05) + 's';
+
+  // Overall win% across all matchups (expected wins / 6 games)
+  const overallWinPct = t.expWins / (n - 1);
+
+  row.innerHTML = `
+    <div class="rank">${rank+1}</div>
+    <div class="team-info">
+      <div class="team-name">${t.name}</div>
+      <div class="team-players">${t.players}</div>
+    </div>
+    <div class="col-val">
+      <div class="dupr-val">${t.dupr.toFixed(3)}</div>
+    </div>
+    <div class="col-val">
+      <div class="winpct-val">${(overallWinPct*100).toFixed(1)}%</div>
+    </div>
+    <div class="col-val col-hide">
+      <div class="expwins-val">${t.expWins.toFixed(2)}</div>
+    </div>
+    <div class="col-val">
+      <div class="odds-ml ${mlClass}">${ml}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-align:center;">${(t.tourProb*100).toFixed(1)}%</div>
+    </div>
+    <div class="col-val col-hide">
+      <div class="odds-ml ${mlClass}" style="font-size:18px;">${fr}</div>
+    </div>
+  `;
+  standingsEl.appendChild(row);
+});
+
+// Render matrix
+const matrixEl = document.getElementById('matrix');
+// Header row
+let headerHTML = '<tr><th class="team-th">TEAM</th>';
+teams.forEach(t => headerHTML += `<th>${t.tag}</th>`);
+headerHTML += '</tr>';
+matrixEl.innerHTML = headerHTML;
+
+teams.forEach((t,i) => {
+  let row = `<tr><th class="team-th">${t.tag} · ${t.name.split(' / ')[0]}</th>`;
+  teams.forEach((opp,j) => {
+    if (i===j) {
+      row += `<td class="self">—</td>`;
+    } else {
+      const prob = wpMatrix[i][j];
+      const pct = (prob*100).toFixed(0);
+      const cls = prob > 0.5 ? 'win' : 'loss';
+      row += `<td class="${cls}">${pct}%</td>`;
+    }
+  });
+  row += '</tr>';
+  matrixEl.innerHTML += row;
+});
+
+// Render matchup cards
+const matchupsEl = document.getElementById('matchups');
+let cardDelay = 0;
+for (let i = 0; i < n; i++) {
+  for (let j = i+1; j < n; j++) {
+    const tA = teams[i], tB = teams[j];
+    const probA = wpMatrix[i][j];
+    const probB = 1 - probA;
+    const mlA = toMoneyline(probA);
+    const mlB = toMoneyline(probB);
+    const mlAClass = mlA.startsWith('-') ? 'fav' : (mlA==='EVEN'?'even':'dog');
+    const mlBClass = mlB.startsWith('-') ? 'fav' : (mlB==='EVEN'?'even':'dog');
+
+    const card = document.createElement('div');
+    card.className = 'matchup-card';
+    card.style.animationDelay = (cardDelay * 0.03) + 's';
+    cardDelay++;
+
+    card.innerHTML = `
+      <div class="matchup-top">MATCHUP ${tA.tag} vs ${tB.tag}</div>
+      <div class="matchup-teams">
+        <div class="m-team left">
+          <div class="m-team-name">${tA.name.split(' / ')[0]}<br>&amp; ${tA.name.split(' / ')[1]}</div>
+          <div class="m-team-players">${tA.p1} ${tA.r1} / ${tA.p2} ${tA.r2}</div>
+        </div>
+        <div class="vs-badge">VS</div>
+        <div class="m-team right">
+          <div class="m-team-name">${tB.name.split(' / ')[0]}<br>&amp; ${tB.name.split(' / ')[1]}</div>
+          <div class="m-team-players">${tB.p1} ${tB.r1} / ${tB.p2} ${tB.r2}</div>
+        </div>
+      </div>
+      <div class="matchup-bar">
+        <div class="bar-fill" style="width:${(probA*100).toFixed(1)}%"></div>
+      </div>
+      <div class="matchup-probs">
+        <span class="prob-left">${(probA*100).toFixed(1)}%</span>
+        <span class="prob-right">${(probB*100).toFixed(1)}%</span>
+      </div>
+      <div class="matchup-odds-row">
+        <div>
+          <div class="m-odds ${mlAClass}">${mlA}</div>
+          <div class="m-odds-label">${tA.tag}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="m-odds ${mlBClass}">${mlB}</div>
+          <div class="m-odds-label">${tB.tag}</div>
+        </div>
+      </div>
+    `;
+    matchupsEl.appendChild(card);
+  }
+}
+</script>
+</body>
+</html>
