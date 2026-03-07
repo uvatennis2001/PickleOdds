@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pickleball Live Odds</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080808;
+    --surface: #101010;
+    --surface2: #181818;
+    --border: #1e1e1e;
+    --border2: #2a2a2a;
+    --accent: #c8f135;
+    --accent2: #35f1a0;
+    --danger: #f13535;
+    --warn: #f1a035;
+    --text: #efefef;
+    --muted: #555;
+    --muted2: #888;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(200,241,53,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,241,53,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 36px 16px; position: relative; z-index: 1; }
+
+  /* ── HEADER ── */
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 40px; flex-wrap: wrap; }
+  .header-left {}
+  .live-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 3px;
+    color: var(--accent); border: 1px solid var(--accent);
+    padding: 4px 12px; margin-bottom: 12px;
+  }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(44px, 7vw, 84px);
+    line-height: 0.88; letter-spacing: 2px;
+  }
+  h1 em { color: var(--accent); font-style: normal; }
+
+  .games-counter {
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    color: var(--muted2); margin-top: 10px; letter-spacing: 1px;
+  }
+  .games-counter span { color: var(--accent); }
+
+  /* ── STANDINGS ── */
+  .section-title {
+    font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--accent);
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .section-title::after { content:''; flex:1; height:1px; background:var(--border2); }
+
+  .standings { display: flex; flex-direction: column; gap: 5px; margin-bottom: 44px; }
+
+  .team-row {
+    display: grid;
+    grid-template-columns: 34px 1fr 72px 72px 72px 100px 100px;
+    align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 14px 18px; position: relative; overflow: hidden;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .team-row:hover { border-color: var(--border2); background: #131313; }
+  .team-row.rank1 { border-color: rgba(200,241,53,0.4); background: rgba(200,241,53,0.03); }
+  .team-row.rank1::before { content:''; position:absolute; left:0;top:0;bottom:0; width:3px; background:var(--accent); }
+  .team-row.eliminated { opacity: 0.45; }
+
+  .rk { font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--muted); line-height:1; }
+  .team-row.rank1 .rk { color: var(--accent); }
+
+  .tinfo {}
+  .tname { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:1px; line-height:1; }
+  .tplayers { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); margin-top:2px; }
+
+  .col { text-align:center; }
+  .col-hd { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--muted); text-align:center; }
+
+  .dupr-num { font-family:'DM Mono',monospace; font-size:14px; color:var(--accent2); font-weight:500; }
+  .record-num { font-family:'DM Mono',monospace; font-size:14px; color:var(--text); }
+  .xw-num { font-family:'DM Mono',monospace; font-size:13px; color:var(--warn); }
+
+  .ml { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px; text-align:center; line-height:1; }
+  .ml.fav { color: var(--danger); }
+  .ml.dog { color: var(--accent2); }
+  .ml.even { color: var(--text); }
+  .ml-prob { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); text-align:center; margin-top:2px; }
+
+  .odds-shift {
+    font-family:'DM Mono',monospace; font-size:10px; text-align:center; margin-top:2px;
+  }
+  .odds-shift.up { color: var(--accent); }
+  .odds-shift.down { color: var(--danger); }
+
+  /* ── SCORE INPUT (shared styles) ── */
+  .score-input {
+    width: 64px; background: var(--bg); border: 1px solid var(--border2);
+    color: var(--text); font-family:'DM Mono',monospace; font-size:20px; font-weight:500;
+    padding: 8px 4px; text-align:center; outline: none;
+    transition: border-color 0.2s;
+  }
+  .score-input:focus { border-color: var(--accent); }
+  .score-sep { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--muted); }
+
+  .entry-error {
+    font-family:'DM Mono',monospace; font-size:11px; color:var(--danger);
+    margin-top:6px; min-height:14px;
+  }
+
+  /* ── RESULTS LOG ── */
+  .results-log { margin-bottom: 44px; }
+
+  .log-list { display:flex; flex-direction:column; gap:5px; }
+
+  .log-item {
+    display:flex; align-items:center; gap:14px;
+    background: var(--surface); border:1px solid var(--border);
+    padding: 12px 16px; font-family:'DM Mono',monospace; font-size:12px;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  .log-num { color:var(--muted); font-size:10px; min-width:24px; }
+  .log-winner { color:var(--accent); font-weight:500; flex:1; }
+  .log-score { color:var(--muted2); }
+  .log-loser { color:var(--muted); }
+  .log-del {
+    background:none; border:none; color:var(--muted); cursor:pointer;
+    font-size:14px; padding:2px 6px; transition:color 0.15s;
+    margin-left:auto;
+  }
+  .log-del:hover { color:var(--danger); }
+
+  .empty-log {
+    font-family:'DM Mono',monospace; font-size:12px; color:var(--muted);
+    padding: 20px; text-align:center; border:1px dashed var(--border2);
+    letter-spacing:1px;
+  }
+
+  /* ── MATCHUP GRID ── */
+  .matchup-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:10px; margin-bottom:44px; }
+
+  .m-card {
+    background:var(--surface); border:1px solid var(--border); padding:14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+  }
+  .m-card:hover:not(.completed) { border-color: var(--border2); box-shadow: 0 0 0 1px var(--border2); }
+  .m-card.active { border-color: var(--accent) !important; cursor: default; }
+  .m-card.completed { border-color: rgba(200,241,53,0.2); cursor: default; }
+  .m-card.completed .m-card-inner { opacity:0.55; }
+
+  .m-tag { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:2px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
+  .m-tag .done-tag { color:var(--accent); }
+  .m-tag .log-hint { color:var(--muted); font-size:9px; letter-spacing:1px; }
+  .m-card.active .m-tag .log-hint { color:var(--accent); }
+
+  .m-teams { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .m-tname { font-family:'Bebas Neue',sans-serif; font-size:17px; letter-spacing:1px; flex:1; line-height:1.1; }
+  .m-tname.right { text-align:right; }
+  .m-vs { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); }
+
+  .m-bar { height:5px; background:var(--surface2); border-radius:3px; overflow:hidden; margin-bottom:6px; }
+  .m-bar-fill { height:100%; background:var(--accent); border-radius:3px; transition:width 0.6s cubic-bezier(0.4,0,0.2,1); }
+
+  .m-probs { display:flex; justify-content:space-between; font-family:'DM Mono',monospace; font-size:11px; }
+  .m-pl { color:var(--accent); } .m-pr { color:var(--muted); }
+
+  .m-odds-row { display:flex; justify-content:space-between; margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
+  .m-odd { font-family:'Bebas Neue',sans-serif; font-size:19px; }
+  .m-odd.fav { color:var(--danger); } .m-odd.dog { color:var(--accent2); } .m-odd.even { color:var(--text); }
+  .m-odd-lbl { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); margin-top:2px; }
+
+  .m-result-badge {
+    font-family:'DM Mono',monospace; font-size:11px; color:var(--accent);
+    text-align:center; padding:6px; background:rgba(200,241,53,0.07);
+    margin-top:8px; letter-spacing:1px;
+  }
+
+  /* ── INLINE ENTRY PANEL ── */
+  .inline-entry {
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--accent);
+    animation: expandIn 0.2s ease;
+  }
+  @keyframes expandIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  .ie-label {
+    font-family:'DM Mono',monospace; font-size:10px; letter-spacing:2px;
+    color:var(--accent); margin-bottom:10px;
+  }
+
+  .ie-winner-row {
+    display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;
+  }
+
+  .ie-team-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text); cursor: pointer; padding: 8px 12px;
+    font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:1px;
+    transition: border-color 0.15s, background 0.15s;
+    width: 100%;
+  }
+  .ie-team-btn:hover { border-color: var(--accent); background: rgba(200,241,53,0.06); }
+  .ie-team-btn.selected { border-color: var(--accent); background: rgba(200,241,53,0.1); color: var(--accent); }
+  .ie-team-btn .btn-sub { font-family:'DM Mono',monospace; font-size:9px; color:var(--muted); font-weight:normal; letter-spacing:1px; text-transform:none; margin-top:2px; display:block; line-height:1; }
+  .ie-team-btn.selected .btn-sub { color: rgba(200,241,53,0.6); }
+  .ie-win-icon { font-size:14px; opacity:0; transition:opacity 0.15s; }
+  .ie-team-btn.selected .ie-win-icon { opacity:1; }
+
+  .ie-score-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  }
+  .ie-score-label {
+    font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:1px; white-space:nowrap;
+  }
+  .ie-score-row .score-input { flex:1; }
+
+  .ie-actions { display: flex; gap: 8px; }
+
+  .ie-submit {
+    flex:1; background: var(--accent); color: #000; border: none; cursor: pointer;
+    font-family:'Bebas Neue',sans-serif; font-size:17px; letter-spacing:2px;
+    padding: 9px 16px; transition: background 0.15s, transform 0.1s;
+  }
+  .ie-submit:hover { background: #d4f94a; }
+  .ie-submit:active { transform:scale(0.97); }
+
+  .ie-cancel {
+    background: none; border: 1px solid var(--border2); color: var(--muted);
+    cursor: pointer; font-family:'DM Mono',monospace; font-size:11px;
+    padding: 9px 14px; transition: border-color 0.15s, color 0.15s;
+  }
+  .ie-cancel:hover { border-color: var(--muted); color: var(--text); }
+
+  .ie-error {
+    font-family:'DM Mono',monospace; font-size:10px; color:var(--danger);
+    margin-top:4px; min-height:13px;
+  }
+
+  /* ── FOOTER ── */
+  footer { border-top:1px solid var(--border); padding-top:20px; font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:1px; }
+
+  @media(max-width:680px){
+    .team-row { grid-template-columns: 28px 1fr 60px 60px 86px; }
+    .col.hide { display:none; }
+    .entry-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="header-left">
+      <div class="live-badge"><span class="live-dot"></span>LIVE ODDS</div>
+      <h1>PICKLE<em>BALL</em><br>TOURNAMENT</h1>
+      <div class="games-counter">GAMES PLAYED: <span id="gamesPlayed">0</span> / 21 &nbsp;·&nbsp; ROUND ROBIN TO 15 · SIDE-OUT</div>
+    </div>
+  </header>
+
+  <div class="section-title">Live Standings & Tournament Odds</div>
+  <div class="standings">
+    <div class="team-row" style="background:transparent;border-color:transparent;padding-top:0;padding-bottom:4px;">
+      <div></div><div></div>
+      <div class="col-hd">DUPR</div>
+      <div class="col-hd">W–L</div>
+      <div class="col-hd hide">EXP W</div>
+      <div class="col-hd">TO WIN</div>
+      <div class="col-hd hide">MOVE</div>
+    </div>
+  </div>
+  <div id="standings" class="standings"></div>
+
+  <div class="section-title">All Matchups — tap to log score</div>
+  <div class="results-log">
+    <div id="logList" class="log-list"></div>
+  </div>
+
+  <div class="matchup-grid" id="matchupGrid"></div>
+
+  <div class="section-title">Results Log</div>
+
+  <footer>DUPR LOGISTIC MODEL · MONTE CARLO 50K SIMS · NO VIG · FOR ENTERTAINMENT ONLY</footer>
+</div>
+
+<script>
+// ── DATA ──
+const TEAMS = [
+  { name:"Tommy / Stepa",  short:"Tommy & Stepa",  tag:"T1", p1:"Tommy",  r1:5.25, p2:"Stepa",  r2:4.16 },
+  { name:"Bruce / Lucci",  short:"Bruce & Lucci",  tag:"T2", p1:"Bruce",  r1:5.00, p2:"Lucci",  r2:4.63 },
+  { name:"Brad / Tim",     short:"Brad & Tim",     tag:"T3", p1:"Brad",   r1:4.95, p2:"Tim",    r2:4.52 },
+  { name:"Jeremy / Mick",  short:"Jeremy & Mick",  tag:"T4", p1:"Jeremy", r1:4.85, p2:"Mick",   r2:4.81 },
+  { name:"John / Sam",     short:"John & Sam",     tag:"T5", p1:"John",   r1:4.71, p2:"Sam",    r2:4.49 },
+  { name:"Mark / Marty",   short:"Mark & Marty",   tag:"T6", p1:"Mark",   r1:4.52, p2:"Marty",  r2:4.06 },
+  { name:"Steve / Dave",   short:"Steve & Dave",   tag:"T7", p1:"Steve",  r1:4.42, p2:"Dave",   r2:3.93 },
+];
+
+TEAMS.forEach(t => {
+  t.dupr = (t.r1 + t.r2) / 2;
+  t.players = `${t.p1} ${t.r1} / ${t.p2} ${t.r2}`;
+  t.wins = 0; t.losses = 0;
+});
+
+const K = 1.8;
+const N = TEAMS.length;
+const SIM = 50000;
+
+// Results: [{wi, li, ws, ls}]
+let results = [];
+let prevOdds = {}; // teamIdx -> prev tourProb
+
+// Load from localStorage
+try {
+  const saved = localStorage.getItem('pb_results_v2');
+  if (saved) results = JSON.parse(saved);
+} catch(e) {}
+
+function save() {
+  try { localStorage.setItem('pb_results_v2', JSON.stringify(results)); } catch(e){}
+}
+
+// ── MATH ──
+function winProb(duprA, duprB) {
+  return 1 / (1 + Math.pow(10, (duprB - duprA) * K));
+}
+
+// Build base win prob matrix (DUPR only)
+const baseMat = Array.from({length:N},(_,i)=>
+  Array.from({length:N},(_,j)=> i===j?null:winProb(TEAMS[i].dupr, TEAMS[j].dupr))
+);
+
+function computeState() {
+  // Tally wins/losses
+  TEAMS.forEach(t => { t.wins=0; t.losses=0; });
+  const played = {}; // "i-j" => true
+  results.forEach(r => {
+    TEAMS[r.wi].wins++;
+    TEAMS[r.li].losses++;
+    const key = r.wi < r.li ? `${r.wi}-${r.li}` : `${r.li}-${r.wi}`;
+    played[key] = {wi:r.wi, li:r.li};
+  });
+
+  // Remaining games
+  const remaining = [];
+  for(let i=0;i<N;i++) for(let j=i+1;j<N;j++) {
+    const key = `${i}-${j}`;
+    if(!played[key]) remaining.push([i,j]);
+  }
+
+  // Effective win prob: if game played, winner=1 loser=0; else use DUPR model
+  function effProb(i, j) {
+    const key = i<j?`${i}-${j}`:`${j}-${i}`;
+    if(played[key]) {
+      return played[key].wi === i ? 1 : 0;
+    }
+    return baseMat[i][j];
+  }
+
+  // Expected wins for standings display
+  TEAMS.forEach((t,i) => {
+    t.expWins = 0;
+    for(let j=0;j<N;j++) {
+      if(i!==j) t.expWins += effProb(i,j);
+    }
+  });
+
+  // Monte Carlo for tournament win prob
+  const tourWins = new Array(N).fill(0);
+  for(let s=0;s<SIM;s++){
+    const wins = TEAMS.map(t => t.wins); // start with actual wins
+    remaining.forEach(([i,j])=>{
+      if(Math.random()<baseMat[i][j]) wins[i]++; else wins[j]++;
+    });
+    const maxW = Math.max(...wins);
+    const champs = wins.reduce((a,w,idx)=>w===maxW?[...a,idx]:a,[]);
+    champs.forEach(idx => tourWins[idx] += 1/champs.length);
+  }
+
+  TEAMS.forEach((t,i) => { t.tourProb = tourWins[i]/SIM; });
+  return { played, remaining };
+}
+
+function toML(prob) {
+  if(prob<=0.001) return '+9999';
+  if(prob>=0.999) return '-9999';
+  if(prob>0.5) return '-'+Math.round((prob/(1-prob))*100);
+  if(prob<0.5) return '+'+Math.round(((1-prob)/prob)*100);
+  return 'EVEN';
+}
+
+function mlClass(ml) {
+  if(ml.startsWith('-')) return 'fav';
+  if(ml==='EVEN') return 'even';
+  return 'dog';
+}
+
+// ── RENDER ──
+let activeCard = null; // key of currently open inline entry
+
+function render() {
+  const { played } = computeState();
+  renderStandings();
+  renderMatchups(played);
+  renderLog();
+  document.getElementById('gamesPlayed').textContent = results.length;
+}
+
+function renderStandings() {
+  const el = document.getElementById('standings');
+  el.innerHTML = '';
+
+  const sorted = [...TEAMS].map((t,i)=>({...t,idx:i}))
+    .sort((a,b)=> {
+      if(b.wins!==a.wins) return b.wins-a.wins;
+      return b.tourProb-a.tourProb;
+    });
+
+  sorted.forEach((t, rank) => {
+    const ml = toML(t.tourProb);
+    const mlc = mlClass(ml);
+    const prev = prevOdds[t.idx];
+    let shift = '';
+    if(prev !== undefined && results.length > 0) {
+      const diff = t.tourProb - prev;
+      if(diff > 0.005) shift = `<div class="odds-shift up">▲ ${(diff*100).toFixed(1)}%</div>`;
+      else if(diff < -0.005) shift = `<div class="odds-shift down">▼ ${(Math.abs(diff)*100).toFixed(1)}%</div>`;
+    }
+
+    const row = document.createElement('div');
+    row.className = `team-row${rank===0?' rank1':''}`;
+    row.innerHTML = `
+      <div class="rk">${rank+1}</div>
+      <div class="tinfo">
+        <div class="tname">${t.name}</div>
+        <div class="tplayers">${t.players}</div>
+      </div>
+      <div class="col"><div class="dupr-num">${t.dupr.toFixed(3)}</div></div>
+      <div class="col"><div class="record-num">${t.wins}–${t.losses}</div></div>
+      <div class="col hide"><div class="xw-num">${t.expWins.toFixed(2)}</div></div>
+      <div class="col">
+        <div class="ml ${mlc}">${ml}</div>
+        <div class="ml-prob">${(t.tourProb*100).toFixed(1)}%</div>
+      </div>
+      <div class="col hide">${shift}</div>
+    `;
+    el.appendChild(row);
+  });
+
+  TEAMS.forEach((t,i) => { prevOdds[i] = t.tourProb; });
+}
+
+function renderMatchups(played) {
+  const el = document.getElementById('matchupGrid');
+  el.innerHTML = '';
+
+  for(let i=0;i<N;i++) for(let j=i+1;j<N;j++) {
+    const tA=TEAMS[i], tB=TEAMS[j];
+    const key = `${i}-${j}`;
+    const isDone = !!played[key];
+    const probA = baseMat[i][j];
+    const probB = 1-probA;
+    const mlA=toML(probA), mlB=toML(probB);
+    const isActive = activeCard === key;
+
+    let resultBadge = '';
+    if(isDone) {
+      const r = results.find(r=>{
+        const k=r.wi<r.li?`${r.wi}-${r.li}`:`${r.li}-${r.wi}`;
+        return k===key;
+      });
+      if(r) {
+        const wName = TEAMS[r.wi].name.split(' / ')[0];
+        const ridx = results.indexOf(r);
+        resultBadge = `
+          <div class="m-result-badge">
+            ✓ ${wName} WON ${r.ws}–${r.ls}
+            <button onclick="event.stopPropagation();deleteResult(${ridx})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;margin-left:10px;" title="Remove">✕</button>
+          </div>`;
+      }
+    }
+
+    let inlineEntry = '';
+    if(isActive && !isDone) {
+      inlineEntry = `
+        <div class="inline-entry" onclick="event.stopPropagation()">
+          <div class="ie-label">SELECT WINNER</div>
+          <div class="ie-winner-row">
+            <button class="ie-team-btn" id="btn-${key}-${i}" onclick="selectWinner('${key}',${i},${j})">
+              <span>
+                ${tA.name}
+                <span class="btn-sub">${tA.players}</span>
+              </span>
+              <span class="ie-win-icon">🏆</span>
+            </button>
+            <button class="ie-team-btn" id="btn-${key}-${j}" onclick="selectWinner('${key}',${j},${i})">
+              <span>
+                ${tB.name}
+                <span class="btn-sub">${tB.players}</span>
+              </span>
+              <span class="ie-win-icon">🏆</span>
+            </button>
+          </div>
+          <div class="ie-score-row">
+            <span class="ie-score-label">LOSER SCORE</span>
+            <input class="score-input" type="number" id="ls-${key}" min="0" max="14" placeholder="0–14" onclick="event.stopPropagation()">
+            <span class="ie-score-label">/ 15</span>
+          </div>
+          <div class="ie-error" id="ie-err-${key}"></div>
+          <div class="ie-actions">
+            <button class="ie-submit" onclick="submitInline('${key}',${i},${j})">LOG RESULT</button>
+            <button class="ie-cancel" onclick="closeCard(event)">CANCEL</button>
+          </div>
+        </div>`;
+    }
+
+    const card = document.createElement('div');
+    card.className = `m-card${isDone?' completed':''}${isActive?' active':''}`;
+    card.dataset.key = key;
+    if(!isDone) card.onclick = () => openCard(key);
+
+    card.innerHTML = `
+      <div class="m-tag">
+        <span>${tA.tag} vs ${tB.tag}</span>
+        ${isDone
+          ? '<span class="done-tag">FINAL</span>'
+          : isActive
+            ? '<span class="log-hint">↑ ENTER SCORE</span>'
+            : '<span class="log-hint">CLICK TO LOG</span>'}
+      </div>
+      <div class="m-card-inner">
+        <div class="m-teams">
+          <div class="m-tname">${tA.name.replace(' / ','<br>&amp; ')}</div>
+          <div class="m-vs">VS</div>
+          <div class="m-tname right">${tB.name.replace(' / ','<br>&amp; ')}</div>
+        </div>
+        <div class="m-bar"><div class="m-bar-fill" style="width:${(probA*100).toFixed(1)}%"></div></div>
+        <div class="m-probs">
+          <span class="m-pl">${(probA*100).toFixed(1)}%</span>
+          <span class="m-pr">${(probB*100).toFixed(1)}%</span>
+        </div>
+        <div class="m-odds-row">
+          <div><div class="m-odd ${mlClass(mlA)}">${mlA}</div><div class="m-odd-lbl">${tA.tag}</div></div>
+          <div style="text-align:right"><div class="m-odd ${mlClass(mlB)}">${mlB}</div><div class="m-odd-lbl">${tB.tag}</div></div>
+        </div>
+      </div>
+      ${resultBadge}
+      ${inlineEntry}
+    `;
+    el.appendChild(card);
+  }
+}
+
+function renderLog() {
+  const el = document.getElementById('logList');
+  if(results.length===0){
+    el.innerHTML='<div class="empty-log">NO RESULTS YET — CLICK A MATCHUP CARD ABOVE TO LOG A GAME</div>';
+    return;
+  }
+  el.innerHTML='';
+  [...results].reverse().forEach((r,ri) => {
+    const idx = results.length-1-ri;
+    const item = document.createElement('div');
+    item.className='log-item';
+    item.innerHTML=`
+      <span class="log-num">#${idx+1}</span>
+      <span class="log-winner">🏆 ${TEAMS[r.wi].name}</span>
+      <span class="log-score">${r.ws}–${r.ls}</span>
+      <span class="log-loser">def. ${TEAMS[r.li].name}</span>
+      <button class="log-del" onclick="deleteResult(${idx})" title="Remove">✕</button>
+    `;
+    el.appendChild(item);
+  });
+}
+
+// ── INLINE CARD LOGIC ──
+let selectedWinner = {}; // key -> winnerIdx
+
+function openCard(key) {
+  if(activeCard === key) { activeCard = null; } else { activeCard = key; }
+  selectedWinner[key] = null;
+  const { played } = computeState();
+  renderMatchups(played);
+  // scroll card into view
+  setTimeout(()=>{
+    const el = document.querySelector(`.m-card[data-key="${key}"]`);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 50);
+}
+
+function closeCard(e) {
+  e.stopPropagation();
+  activeCard = null;
+  const { played } = computeState();
+  renderMatchups(played);
+}
+
+function selectWinner(key, wi, li) {
+  selectedWinner[key] = wi;
+  // update button states without full re-render
+  const [i,j] = key.split('-').map(Number);
+  [i,j].forEach(idx => {
+    const btn = document.getElementById(`btn-${key}-${idx}`);
+    if(btn) btn.classList.toggle('selected', idx === wi);
+  });
+  // focus loser score input
+  const ls = document.getElementById(`ls-${key}`);
+  if(ls) { ls.focus(); ls.select(); }
+}
+
+function submitInline(key, iA, iB) {
+  const wi = selectedWinner[key];
+  const errEl = document.getElementById(`ie-err-${key}`);
+  if(wi === null || wi === undefined) { errEl.textContent='⚠ Select a winner first.'; return; }
+  const li = wi === iA ? iB : iA;
+  const lsVal = parseInt(document.getElementById(`ls-${key}`).value);
+  if(isNaN(lsVal)||lsVal<0||lsVal>14) { errEl.textContent='⚠ Loser score must be 0–14.'; return; }
+
+  errEl.textContent='';
+  results.push({wi, li, ws:15, ls:lsVal});
+  save();
+  activeCard = null;
+  selectedWinner[key] = null;
+  render();
+}
+
+// ── DELETE ──
+function deleteResult(idx) {
+  results.splice(idx,1);
+  save();
+  render();
+}
+
+// Init
+render();
+</script>
+</body>
+</html>
