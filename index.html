@@ -269,7 +269,78 @@
   /* ── FOOTER ── */
   footer { border-top:1px solid var(--border); padding-top:20px; font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:1px; }
 
-  @media(max-width:680px){
+  /* ── PASSWORD MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.15s ease;
+  }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  .modal {
+    background: var(--surface); border: 1px solid var(--accent);
+    padding: 32px 28px; width: 100%; max-width: 340px;
+    animation: popIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes popIn { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
+
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+    letter-spacing: 2px; color: var(--accent); margin-bottom: 6px;
+  }
+  .modal-sub {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--muted); letter-spacing: 1px; margin-bottom: 20px;
+  }
+  .modal-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border2);
+    color: var(--text); font-family: 'DM Mono', monospace; font-size: 18px;
+    padding: 12px 14px; outline: none; letter-spacing: 4px;
+    transition: border-color 0.2s; margin-bottom: 10px;
+  }
+  .modal-input:focus { border-color: var(--accent); }
+  .modal-input.shake {
+    animation: shake 0.35s ease;
+    border-color: var(--danger) !important;
+  }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-8px)}
+    40%{transform:translateX(8px)}
+    60%{transform:translateX(-5px)}
+    80%{transform:translateX(5px)}
+  }
+  .modal-error {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--danger); min-height: 14px; margin-bottom: 14px; letter-spacing: 1px;
+  }
+  .modal-btn {
+    width: 100%; background: var(--accent); color: #000; border: none;
+    font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px;
+    padding: 12px; cursor: pointer; transition: background 0.15s;
+  }
+  .modal-btn:hover { background: #d4f94a; }
+  .modal-cancel {
+    width: 100%; background: none; border: none; color: var(--muted);
+    font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 1px;
+    padding: 10px; cursor: pointer; margin-top: 8px;
+    transition: color 0.15s;
+  }
+  .modal-cancel:hover { color: var(--text); }
+
+  .auth-indicator {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 2px;
+    color: var(--accent); margin-top: 8px; cursor: pointer;
+    border: 1px solid transparent; padding: 4px 10px;
+    transition: border-color 0.15s;
+  }
+  .auth-indicator:hover { border-color: var(--border2); }
+  .auth-indicator.locked { color: var(--muted); }
+  .auth-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); }
+  .auth-indicator.locked .auth-dot { background: var(--muted); }
     .team-row { grid-template-columns: 28px 1fr 60px 60px 86px; }
     .col.hide { display:none; }
     .entry-grid { grid-template-columns:1fr; }
@@ -284,6 +355,9 @@
       <div class="live-badge"><span class="live-dot"></span>LIVE ODDS</div>
       <h1>PICKLE<em>BALL</em><br>TOURNAMENT</h1>
       <div class="games-counter">GAMES PLAYED: <span id="gamesPlayed">0</span> / 21 &nbsp;·&nbsp; ROUND ROBIN TO 15 · SIDE-OUT</div>
+      <div id="authIndicator" class="auth-indicator locked" onclick="promptAuth()">
+        <span class="auth-dot"></span><span id="authLabel">LOCKED</span>
+      </div>
     </div>
   </header>
 
@@ -309,7 +383,7 @@
 
   <div class="section-title">Results Log</div>
 
-  <footer>DUPR LOGISTIC MODEL · MONTE CARLO 50K SIMS · NO VIG · FOR ENTERTAINMENT ONLY</footer>
+  <footer>DUPR LOGISTIC MODEL · MONTE CARLO 100K SIMS · NO VIG · FOR ENTERTAINMENT ONLY</footer>
 </div>
 
 <script>
@@ -411,7 +485,6 @@ function computeState() {
 }
 
 function toML(prob) {
-  // Apply a floor/ceiling so we always get a real odds number
   prob = Math.max(0.0005, Math.min(0.9995, prob));
   if(prob > 0.5) return '-'+Math.round((prob/(1-prob))*100);
   if(prob < 0.5) return '+'+Math.round(((1-prob)/prob)*100);
@@ -602,19 +675,106 @@ function renderLog() {
   });
 }
 
+// ── AUTH ──
+const PASSWORD = 'pickle'; // ← change this to whatever you want
+let isAuthed = false;
+let authPendingAction = null; // function to call after successful auth
+
+function promptAuth(onSuccess) {
+  if(isAuthed) { if(onSuccess) onSuccess(); return; }
+  authPendingAction = onSuccess || null;
+  showModal();
+}
+
+function showModal() {
+  if(document.getElementById('pwModal')) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'pwModal';
+  overlay.innerHTML = `
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-title">🔒 SCORE ENTRY</div>
+      <div class="modal-sub">ENTER PASSWORD TO LOG RESULTS</div>
+      <input class="modal-input" id="pwInput" type="password" placeholder="••••••" autocomplete="off">
+      <div class="modal-error" id="pwError"></div>
+      <button class="modal-btn" onclick="checkPassword()">UNLOCK</button>
+      <button class="modal-cancel" onclick="closeModal()">CANCEL</button>
+    </div>
+  `;
+  overlay.onclick = closeModal;
+  document.body.appendChild(overlay);
+  setTimeout(()=>{ const i=document.getElementById('pwInput'); if(i) i.focus(); }, 50);
+  // allow Enter key
+  document.getElementById('pwInput').addEventListener('keydown', e => {
+    if(e.key==='Enter') checkPassword();
+  });
+}
+
+function checkPassword() {
+  const val = document.getElementById('pwInput').value;
+  if(val === PASSWORD) {
+    isAuthed = true;
+    closeModal();
+    updateAuthIndicator();
+    if(authPendingAction) { authPendingAction(); authPendingAction = null; }
+  } else {
+    const inp = document.getElementById('pwInput');
+    const err = document.getElementById('pwError');
+    err.textContent = '⚠ INCORRECT PASSWORD';
+    inp.value = '';
+    inp.classList.remove('shake');
+    void inp.offsetWidth; // force reflow for re-animation
+    inp.classList.add('shake');
+    inp.focus();
+  }
+}
+
+function closeModal() {
+  const m = document.getElementById('pwModal');
+  if(m) m.remove();
+  authPendingAction = null;
+}
+
+function lockAuth() {
+  isAuthed = false;
+  updateAuthIndicator();
+  // close any open card
+  activeCard = null;
+  const { played } = computeState();
+  renderMatchups(played);
+}
+
+function updateAuthIndicator() {
+  const ind = document.getElementById('authIndicator');
+  const lbl = document.getElementById('authLabel');
+  if(!ind) return;
+  if(isAuthed) {
+    ind.className = 'auth-indicator';
+    ind.title = 'Click to lock';
+    ind.onclick = lockAuth;
+    lbl.textContent = 'UNLOCKED — CLICK TO LOCK';
+  } else {
+    ind.className = 'auth-indicator locked';
+    ind.title = 'Click to unlock';
+    ind.onclick = promptAuth;
+    lbl.textContent = 'LOCKED';
+  }
+}
+
 // ── INLINE CARD LOGIC ──
 let selectedWinner = {}; // key -> winnerIdx
 
 function openCard(key) {
-  if(activeCard === key) { activeCard = null; } else { activeCard = key; }
-  selectedWinner[key] = null;
-  const { played } = computeState();
-  renderMatchups(played);
-  // scroll card into view
-  setTimeout(()=>{
-    const el = document.querySelector(`.m-card[data-key="${key}"]`);
-    if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
-  }, 50);
+  promptAuth(() => {
+    if(activeCard === key) { activeCard = null; } else { activeCard = key; }
+    selectedWinner[key] = null;
+    const { played } = computeState();
+    renderMatchups(played);
+    setTimeout(()=>{
+      const el = document.querySelector(`.m-card[data-key="${key}"]`);
+      if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }, 50);
+  });
 }
 
 function closeCard(e) {
@@ -655,9 +815,11 @@ function submitInline(key, iA, iB) {
 
 // ── DELETE ──
 function deleteResult(idx) {
-  results.splice(idx,1);
-  save();
-  render();
+  promptAuth(() => {
+    results.splice(idx,1);
+    save();
+    render();
+  });
 }
 
 // Init
