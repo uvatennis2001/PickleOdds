@@ -332,7 +332,7 @@ TEAMS.forEach(t => {
 
 const K = 1.8;
 const N = TEAMS.length;
-const SIM = 50000;
+const SIM = 100000;
 
 // Results: [{wi, li, ws, ls}]
 let results = [];
@@ -405,15 +405,16 @@ function computeState() {
     champs.forEach(idx => tourWins[idx] += 1/champs.length);
   }
 
-  TEAMS.forEach((t,i) => { t.tourProb = tourWins[i]/SIM; });
+  // Apply a small floor — no team gets exactly 0 from sampling noise
+  TEAMS.forEach((t,i) => { t.tourProb = Math.max(tourWins[i]/SIM, 0.0008); });
   return { played, remaining };
 }
 
 function toML(prob) {
-  if(prob<=0.001) return '+9999';
-  if(prob>=0.999) return '-9999';
-  if(prob>0.5) return '-'+Math.round((prob/(1-prob))*100);
-  if(prob<0.5) return '+'+Math.round(((1-prob)/prob)*100);
+  // Apply a floor/ceiling so we always get a real odds number
+  prob = Math.max(0.0005, Math.min(0.9995, prob));
+  if(prob > 0.5) return '-'+Math.round((prob/(1-prob))*100);
+  if(prob < 0.5) return '+'+Math.round(((1-prob)/prob)*100);
   return 'EVEN';
 }
 
