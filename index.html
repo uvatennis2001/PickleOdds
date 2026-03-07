@@ -341,6 +341,25 @@
   .auth-indicator.locked { color: var(--muted); }
   .auth-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); }
   .auth-indicator.locked .auth-dot { background: var(--muted); }
+
+  /* ── TEAM FILTER ── */
+  .filter-bar {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 16px;
+  }
+  .filter-pill {
+    font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 1.5px;
+    padding: 6px 14px; border: 1px solid var(--border2);
+    background: var(--surface); color: var(--muted);
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    user-select: none;
+  }
+  .filter-pill:hover { border-color: var(--muted); color: var(--text); }
+  .filter-pill.active {
+    background: var(--accent); color: #000;
+    border-color: var(--accent); font-weight: 500;
+  }
+
     .team-row { grid-template-columns: 28px 1fr 60px 60px 86px; }
     .col.hide { display:none; }
     .entry-grid { grid-template-columns:1fr; }
@@ -379,6 +398,7 @@
     <div id="logList" class="log-list"></div>
   </div>
 
+  <div class="filter-bar" id="filterBar"></div>
   <div class="matchup-grid" id="matchupGrid"></div>
 
   <div class="section-title">Results Log</div>
@@ -497,12 +517,37 @@ function mlClass(ml) {
   return 'dog';
 }
 
+// ── FILTER ──
+let activeFilter = null; // null = ALL, or team index
+
+function renderFilterBar() {
+  const bar = document.getElementById('filterBar');
+  bar.innerHTML = '';
+
+  // ALL pill
+  const all = document.createElement('div');
+  all.className = `filter-pill${activeFilter === null ? ' active' : ''}`;
+  all.textContent = 'ALL';
+  all.onclick = () => { activeFilter = null; render(); };
+  bar.appendChild(all);
+
+  // One pill per team
+  TEAMS.forEach((t, i) => {
+    const pill = document.createElement('div');
+    pill.className = `filter-pill${activeFilter === i ? ' active' : ''}`;
+    pill.textContent = t.name.split(' / ')[0].toUpperCase() + ' & ' + t.name.split(' / ')[1].toUpperCase();
+    pill.onclick = () => { activeFilter = activeFilter === i ? null : i; render(); };
+    bar.appendChild(pill);
+  });
+}
+
 // ── RENDER ──
 let activeCard = null; // key of currently open inline entry
 
 function render() {
   const { played } = computeState();
   renderStandings();
+  renderFilterBar();
   renderMatchups(played);
   renderLog();
   document.getElementById('gamesPlayed').textContent = results.length;
@@ -617,6 +662,9 @@ function renderMatchups(played) {
     }
 
     const card = document.createElement('div');
+
+    // Filter: skip if a team is selected and neither team matches
+    if(activeFilter !== null && activeFilter !== i && activeFilter !== j) continue;
     card.className = `m-card${isDone?' completed':''}${isActive?' active':''}`;
     card.dataset.key = key;
     if(!isDone) card.onclick = () => openCard(key);
