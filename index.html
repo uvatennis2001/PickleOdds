@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pickleball Live Odds</title>
+<title>Mixed Doubles Live Odds</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -372,8 +372,8 @@
   <header>
     <div class="header-left">
       <div class="live-badge"><span class="live-dot"></span>LIVE ODDS</div>
-      <h1>PICKLE<em>BALL</em><br>TOURNAMENT</h1>
-      <div class="games-counter">GAMES PLAYED: <span id="gamesPlayed">0</span> / 21 &nbsp;·&nbsp; ROUND ROBIN TO 15 · SIDE-OUT</div>
+      <h1>MIXED<em>DOUBLES</em><br>TOURNAMENT</h1>
+      <div class="games-counter">GAMES PLAYED: <span id="gamesPlayed">0</span> / 10 &nbsp;·&nbsp; ROUND ROBIN TO 15 · SIDE-OUT</div>
       <div id="authIndicator" class="auth-indicator locked" onclick="promptAuth()">
         <span class="auth-dot"></span><span id="authLabel">LOCKED</span>
       </div>
@@ -403,24 +403,31 @@
 
   <div class="section-title">Results Log</div>
 
-  <footer>DUPR LOGISTIC MODEL · MONTE CARLO 100K SIMS · NO VIG · FOR ENTERTAINMENT ONLY</footer>
+  <footer>DUPR LOGISTIC MODEL · MONTE CARLO 100K SIMS · MOMENTUM ADJ: JOHN &amp; SAM +0.12 · NO VIG</footer>
 </div>
 
 <script>
 // ── DATA ──
+// ── MOMENTUM BOOST ──
+// John & Sam won today's tournament. Both get +0.12 DUPR bump
+// reflecting confirmed current form heading into tomorrow.
+// John: 4.71 → 4.83 effective  |  Sam: 4.49 → 4.61 effective
+const MOMENTUM = { 'John': 0.12, 'Sam': 0.12 };
+
 const TEAMS = [
-  { name:"Tommy / Stepa",  short:"Tommy & Stepa",  tag:"T1", p1:"Tommy",  r1:5.25, p2:"Stepa",  r2:4.16 },
-  { name:"Bruce / Lucci",  short:"Bruce & Lucci",  tag:"T2", p1:"Bruce",  r1:5.00, p2:"Lucci",  r2:4.63 },
-  { name:"Brad / Tim",     short:"Brad & Tim",     tag:"T3", p1:"Brad",   r1:4.95, p2:"Tim",    r2:4.52 },
-  { name:"Jeremy / Mick",  short:"Jeremy & Mick",  tag:"T4", p1:"Jeremy", r1:4.85, p2:"Mick",   r2:4.81 },
-  { name:"John / Sam",     short:"John & Sam",     tag:"T5", p1:"John",   r1:4.71, p2:"Sam",    r2:4.49 },
-  { name:"Mark / Marty",   short:"Mark & Marty",   tag:"T6", p1:"Mark",   r1:4.52, p2:"Marty",  r2:4.06 },
-  { name:"Steve / Dave",   short:"Steve & Dave",   tag:"T7", p1:"Steve",  r1:4.42, p2:"Dave",   r2:3.93 },
+  { name:"Tommy / Erin",     short:"Tommy & Erin",     tag:"T1", p1:"Tommy",     r1:5.25, p2:"Erin",      r2:4.41 },
+  { name:"Mick / Rona",      short:"Mick & Rona",      tag:"T2", p1:"Mick",      r1:4.81, p2:"Rona",      r2:4.38 },
+  { name:"John / Megan",     short:"John & Megan",     tag:"T3", p1:"John",      r1:4.71, p2:"Megan",     r2:4.15 },
+  { name:"Sam / Molly",      short:"Sam & Molly",      tag:"T4", p1:"Sam",       r1:4.49, p2:"Molly",     r2:4.64 },
+  { name:"Stepa / Christine",short:"Stepa & Christine", tag:"T5", p1:"Stepa",    r1:4.16, p2:"Christine", r2:4.71 },
 ];
 
 TEAMS.forEach(t => {
-  t.dupr = (t.r1 + t.r2) / 2;
-  t.players = `${t.p1} ${t.r1} / ${t.p2} ${t.r2}`;
+  const eff1 = t.r1 + (MOMENTUM[t.p1] || 0);
+  const eff2 = t.r2 + (MOMENTUM[t.p2] || 0);
+  t.dupr = (eff1 + eff2) / 2;           // effective DUPR used for odds
+  t.duprDisplay = ((t.r1 + t.r2) / 2);  // raw DUPR shown in UI
+  t.players = `${t.p1} ${t.r1}${MOMENTUM[t.p1]?'*':''} / ${t.p2} ${t.r2}${MOMENTUM[t.p2]?'*':''}`;
   t.wins = 0; t.losses = 0;
 });
 
@@ -434,12 +441,12 @@ let prevOdds = {}; // teamIdx -> prev tourProb
 
 // Load from localStorage
 try {
-  const saved = localStorage.getItem('pb_results_v2');
+  const saved = localStorage.getItem('pb_mixed_v1');
   if (saved) results = JSON.parse(saved);
 } catch(e) {}
 
 function save() {
-  try { localStorage.setItem('pb_results_v2', JSON.stringify(results)); } catch(e){}
+  try { localStorage.setItem('pb_mixed_v1', JSON.stringify(results)); } catch(e){}
 }
 
 // ── MATH ──
@@ -582,7 +589,7 @@ function renderStandings() {
         <div class="tname">${t.name}</div>
         <div class="tplayers">${t.players}</div>
       </div>
-      <div class="col"><div class="dupr-num">${t.dupr.toFixed(3)}</div></div>
+      <div class="col"><div class="dupr-num">${t.duprDisplay.toFixed(3)}${(t.dupr!==t.duprDisplay)?'<span style="color:var(--accent);font-size:9px;margin-left:2px;" title="Momentum adjusted">★</span>':''}</div></div>
       <div class="col"><div class="record-num">${t.wins}–${t.losses}</div></div>
       <div class="col hide"><div class="xw-num">${t.expWins.toFixed(2)}</div></div>
       <div class="col">
