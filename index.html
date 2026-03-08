@@ -403,31 +403,40 @@
 
   <div class="section-title">Results Log</div>
 
-  <footer>DUPR LOGISTIC MODEL · MONTE CARLO 100K SIMS · MOMENTUM ADJ: JOHN &amp; SAM +0.12 · NO VIG</footer>
+  <footer>DUPR LOGISTIC MODEL · MONTE CARLO 100K SIMS · NO VIG · FOR ENTERTAINMENT ONLY</footer>
 </div>
 
 <script>
-// ── DATA ──
-// ── MOMENTUM BOOST ──
-// John & Sam won today's tournament. Both get +0.12 DUPR bump
-// reflecting confirmed current form heading into tomorrow.
-// John: 4.71 → 4.83 effective  |  Sam: 4.49 → 4.61 effective
-const MOMENTUM = { 'John': 0.12, 'Sam': 0.12 };
+// ── FORM & INJURY ADJUSTMENTS ──
+const ADJUSTMENTS = {
+  'John':      { delta:  0.12 },
+  'Sam':       { delta:  0.12 },
+  'Tommy':     { delta: -0.12 },
+  'Erin':      { delta: -0.10 },
+  'Stepa':     { delta:  0.00 },
+  'Mick':      { delta:  0.00 },
+  'Rona':      { delta:  0.00 },
+  'Megan':     { delta:  0.00 },
+  'Molly':     { delta:  0.00 },
+  'Christine': { delta:  0.00 },
+};
 
 const TEAMS = [
-  { name:"Tommy / Erin",     short:"Tommy & Erin",     tag:"T1", p1:"Tommy",     r1:5.25, p2:"Erin",      r2:4.41 },
-  { name:"Mick / Rona",      short:"Mick & Rona",      tag:"T2", p1:"Mick",      r1:4.81, p2:"Rona",      r2:4.38 },
-  { name:"John / Megan",     short:"John & Megan",     tag:"T3", p1:"John",      r1:4.71, p2:"Megan",     r2:4.15 },
-  { name:"Sam / Molly",      short:"Sam & Molly",      tag:"T4", p1:"Sam",       r1:4.49, p2:"Molly",     r2:4.64 },
-  { name:"Stepa / Christine",short:"Stepa & Christine", tag:"T5", p1:"Stepa",    r1:4.16, p2:"Christine", r2:4.71 },
+  { name:"Tommy / Erin",      short:"Tommy & Erin",      tag:"T1", p1:"Tommy",     r1:5.25, p2:"Erin",      r2:4.41 },
+  { name:"Mick / Rona",       short:"Mick & Rona",       tag:"T2", p1:"Mick",      r1:4.81, p2:"Rona",      r2:4.38 },
+  { name:"John / Megan",      short:"John & Megan",      tag:"T3", p1:"John",      r1:4.71, p2:"Megan",     r2:4.15 },
+  { name:"Sam / Molly",       short:"Sam & Molly",       tag:"T4", p1:"Sam",       r1:4.49, p2:"Molly",     r2:4.64 },
+  { name:"Stepa / Christine", short:"Stepa & Christine",  tag:"T5", p1:"Stepa",    r1:4.16, p2:"Christine", r2:4.71 },
 ];
 
 TEAMS.forEach(t => {
-  const eff1 = t.r1 + (MOMENTUM[t.p1] || 0);
-  const eff2 = t.r2 + (MOMENTUM[t.p2] || 0);
-  t.dupr = (eff1 + eff2) / 2;           // effective DUPR used for odds
-  t.duprDisplay = ((t.r1 + t.r2) / 2);  // raw DUPR shown in UI
-  t.players = `${t.p1} ${t.r1}${MOMENTUM[t.p1]?'*':''} / ${t.p2} ${t.r2}${MOMENTUM[t.p2]?'*':''}`;
+  const d1 = (ADJUSTMENTS[t.p1] || { delta:0 }).delta;
+  const d2 = (ADJUSTMENTS[t.p2] || { delta:0 }).delta;
+  t.dupr = ((t.r1 + d1) + (t.r2 + d2)) / 2;
+  t.duprDisplay = (t.r1 + t.r2) / 2;
+  t.effDupr = t.dupr;
+  t.players = `${t.p1} ${t.r1} / ${t.p2} ${t.r2}`;
+  t.injuryNote = '';
   t.wins = 0; t.losses = 0;
 });
 
@@ -589,7 +598,7 @@ function renderStandings() {
         <div class="tname">${t.name}</div>
         <div class="tplayers">${t.players}</div>
       </div>
-      <div class="col"><div class="dupr-num">${t.duprDisplay.toFixed(3)}${(t.dupr!==t.duprDisplay)?'<span style="color:var(--accent);font-size:9px;margin-left:2px;" title="Momentum adjusted">★</span>':''}</div></div>
+      <div class="col"><div class="dupr-num">${t.duprDisplay.toFixed(3)}</div></div>
       <div class="col"><div class="record-num">${t.wins}–${t.losses}</div></div>
       <div class="col hide"><div class="xw-num">${t.expWins.toFixed(2)}</div></div>
       <div class="col">
