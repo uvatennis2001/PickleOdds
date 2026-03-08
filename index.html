@@ -422,20 +422,20 @@ const ADJUSTMENTS = {
 };
 
 const TEAMS = [
-  { name:"Tommy / Erin",      short:"Tommy & Erin",      tag:"T1", p1:"Tommy",     r1:5.25, p2:"Erin",      r2:4.41 },
-  { name:"Mick / Rona",       short:"Mick & Rona",       tag:"T2", p1:"Mick",      r1:4.81, p2:"Rona",      r2:4.38 },
-  { name:"John / Megan",      short:"John & Megan",      tag:"T3", p1:"John",      r1:4.71, p2:"Megan",     r2:4.15 },
-  { name:"Sam / Molly",       short:"Sam & Molly",       tag:"T4", p1:"Sam",       r1:4.49, p2:"Molly",     r2:4.64 },
-  { name:"Stepa / Christine", short:"Stepa & Christine",  tag:"T5", p1:"Stepa",    r1:4.16, p2:"Christine", r2:4.71 },
+  { name:"Tommy / Erin",      short:"Tommy & Erin",      tag:"T1", p1:"Tommy",     r1:5.25, p2:"Erin",      r2:4.41, d1:5.25, d2:4.41 },
+  { name:"Mick / Rona",       short:"Mick & Rona",       tag:"T2", p1:"Mick",      r1:4.81, p2:"Rona",      r2:4.38, d1:4.81, d2:4.38 },
+  { name:"John / Megan",      short:"John & Megan",      tag:"T3", p1:"John",      r1:4.71, p2:"Megan",     r2:4.35, d1:4.71, d2:4.15 },
+  { name:"Sam / Molly",       short:"Sam & Molly",       tag:"T4", p1:"Sam",       r1:4.49, p2:"Molly",     r2:4.64, d1:4.49, d2:4.64 },
+  { name:"Stepa / Christine", short:"Stepa & Christine",  tag:"T5", p1:"Stepa",    r1:4.40, p2:"Christine", r2:4.50, d1:4.16, d2:4.71 },
 ];
 
 TEAMS.forEach(t => {
   const d1 = (ADJUSTMENTS[t.p1] || { delta:0 }).delta;
   const d2 = (ADJUSTMENTS[t.p2] || { delta:0 }).delta;
   t.dupr = ((t.r1 + d1) + (t.r2 + d2)) / 2;
-  t.duprDisplay = (t.r1 + t.r2) / 2;
+  t.duprDisplay = (t.d1 + t.d2) / 2;
   t.effDupr = t.dupr;
-  t.players = `${t.p1} ${t.r1} / ${t.p2} ${t.r2}`;
+  t.players = `${t.p1} ${t.d1} / ${t.p2} ${t.d2}`;
   t.injuryNote = '';
   t.wins = 0; t.losses = 0;
 });
